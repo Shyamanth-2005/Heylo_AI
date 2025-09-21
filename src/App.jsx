@@ -5,6 +5,8 @@ import { formatTime } from "../utils/chatUtils";
 import LoadingIndicator from "./components/LoadingIndicator";
 import ChatInput from "./components/ChatInput";
 import { generateContent } from "./services/geminiApi";
+import { startTransition } from "react";
+
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,11 +20,12 @@ function App() {
     },
   ]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+
+    // Add user message
     const userMessage = {
       id: Date.now().toString(),
       text: input,
@@ -33,32 +36,36 @@ function App() {
     setInput("");
     setIsLoading(true);
 
-    setTimeout(() => {
+    // Simulate delay for bot response
+    setTimeout(async () => {
+      const botText = await generateContent(input); // await resolved text
       const botMessage = {
         id: (Date.now() + 1).toString(),
-        text: generateContent(input),
+        text: botText,
         sender: "bot",
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, botMessage]);
-      setIsLoading(false);
-    }, 1500);
+
+      startTransition(() => {
+        setMessages((prev) => [...prev, botMessage]);
+        setIsLoading(false);
+      });
+    });
   };
+
   return (
     <div className="flex flex-col h-screen">
       <Header toggleDarkMode={toggleDarkMode} darkMode={darkMode} />
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <div className="max-w-5xl mx-auto space-y-4">
-          {messages.map((message) => {
-            return (
-              <ChatMessage
-                key={message.id}
-                darkMode={darkMode}
-                messages={message}
-                formatTime={formatTime}
-              />
-            );
-          })}
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              darkMode={darkMode}
+              message={message}
+              formatTime={formatTime}
+            />
+          ))}
           {isLoading && <LoadingIndicator darkMode={darkMode} />}
         </div>
       </div>
